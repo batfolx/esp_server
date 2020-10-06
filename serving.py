@@ -1,31 +1,17 @@
 import os
 from flask import Flask, render_template, request, jsonify, send_file, session, copy_current_request_context
 from flask_socketio import SocketIO, send, emit
-from threading import Thread
-import time
+
+login = 'XXXXXXXX'
+password = 'XXXXXXXX'
 
 pictures = {}
-connections = {}
 
 ip = '192.168.1.6'
 port = 3000
 app = Flask(__name__)
 
 socketio = SocketIO(app)
-
-
-@socketio.on('connected')
-def sock_connect():
-    connections[session] = 1
-    print(f'We got a connection {connections}')
-
-
-@socketio.on('disconnect')
-def sock_disconnect():
-    try:
-        del connections[request.sid]
-    except Exception as e:
-        pass
 
 
 @socketio.on("camera")
@@ -35,15 +21,47 @@ def handle_camera(data):
     except Exception:
         camnum = 1
 
-    emit('data', {
-        'data': pictures[camnum]
-    })
+    _login = data['login']
+    _password = data['password']
+
+    if login == _login and _password == password:
+        emit('data', {
+            'data': pictures[camnum]
+        })
+    else:
+        emit('data', {
+            'data': 0
+        })
 
 
 @app.route("/")
 def home():
     print(request)
     return "Hello, world"
+
+
+@app.route("/auth", methods=['GET'])
+def auth():
+    try:
+        _login = request.headers['Login']
+        _password = request.headers['Password']
+
+
+        if _login == login and _password == password:
+            print("Valid!")
+            return jsonify({
+                'error': ''
+            })
+        else:
+            print("INVALID")
+            return jsonify({
+                'error': 'invalid'
+            })
+
+    except:
+        return jsonify({
+            'error': 'invalid',
+        })
 
 
 @app.route("/pic")
@@ -81,5 +99,8 @@ def upload():
 
 
 if __name__ == '__main__':
+
+
+
     socketio.run(app, host=ip, port=port, debug=True)
 
