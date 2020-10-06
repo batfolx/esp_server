@@ -1,9 +1,11 @@
 import os
 from flask import Flask, render_template, request, jsonify, send_file, session, copy_current_request_context
 from flask_socketio import SocketIO, send, emit
+import base64
 
-login = 'XXXXXXXX'
-password = 'XXXXXXXX'
+
+login = 'xxxxx'
+password = 'xxxxx'
 
 pictures = {}
 
@@ -23,12 +25,13 @@ def handle_camera(data):
 
     _login = data['login']
     _password = data['password']
+    try:
+        if login == _login and _password == password:
+            emit('data', {
+                'data': pictures[camnum]
+            })
 
-    if login == _login and _password == password:
-        emit('data', {
-            'data': pictures[camnum]
-        })
-    else:
+    except KeyError:
         emit('data', {
             'data': 0
         })
@@ -91,15 +94,14 @@ def upload():
     # get the number
     number = int(filename.split('.')[0])
 
-    # store picture in memory
-    pictures[number] = request.data
+    # store picture in memory base64 encoded
+    pictures[number] = base64.b64encode(request.data)
     return "OK!"
 
 
 
 
 if __name__ == '__main__':
-
 
 
     socketio.run(app, host=ip, port=port, debug=True)
